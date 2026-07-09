@@ -21,9 +21,9 @@ st.set_page_config(page_title="Indian-context Bias Detector", page_icon="⚖️"
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")  # unused, kept in case you re-add HF later
 try:
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", st.secrets.get("GROQ_API_KEY", ""))
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", st.secrets.get("GROQ_API_KEY", "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"))
 except Exception:
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 
 ROUTER_URL = "https://api.groq.com/openai/v1/chat/completions"
 
