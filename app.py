@@ -17,6 +17,8 @@ import json
 from detector import detect_bias
 from mitigation_pipeline import mitigate_pipeline
 
+st.set_page_config(page_title="Indian-context Bias Detector", page_icon="⚖️", layout="wide")
+
 HF_TOKEN = os.environ.get("HF_TOKEN", "")  # unused, kept in case you re-add HF later
 try:
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY", st.secrets.get("GROQ_API_KEY", ""))
@@ -37,6 +39,181 @@ LLM_MITIGATOR_MODEL = "llama-3.3-70b-versatile"
 
 
 SUPPORTED_TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".json", ".py", ".log", ".xml", ".html", ".htm", ".yaml", ".yml", ".ini"}
+
+BIAS_AXES = ["Gender", "Caste", "Religion", "Age", "Region", "Appearance", "Socioeconomic"]
+
+
+# ---------------- Design system ----------------
+# Palette: a cool "lab notebook" tone, not the cream/terracotta or near-black
+# defaults — a pale slate background, indigo as the working color, and a
+# three-step severity ramp (sage -> ochre -> brick) reserved for scores.
+CUSTOM_CSS = """
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F1F2F6; --ink:#1B1E2A; --indigo:#2F3B5C; --indigo-dark:#232C46;
+  --brick:#9C3B2E; --ochre:#B8863B; --sage:#4B7361; --hairline:#D6D9E1;
+}
+html, body, [data-testid="stAppViewContainer"], .main { background: var(--paper) !important; }
+[data-testid="stHeader"] { background: transparent !important; }
+[data-testid="stAppViewContainer"] * { color: var(--ink); }
+html, body, p, div, span, label, li, textarea, input { font-family: 'IBM Plex Sans', sans-serif; }
+h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--indigo) !important; font-weight: 600 !important; letter-spacing: -0.01em; }
+code, .mono, .eyebrow, .meter-value { font-family: 'IBM Plex Mono', monospace !important; }
+.block-container { max-width: 980px; padding-top: 1.5rem; }
+hr { border-color: var(--hairline) !important; }
+
+.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 0.9rem; margin-bottom: 0.4rem; }
+.masthead h1 { margin: 0 0 0.25rem 0; font-size: 2.1rem; }
+.masthead .dek { color: #4A4E5C; font-size: 0.95rem; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: var(--indigo); font-weight: 600; margin-bottom: 0.3rem; }
+
+.badge { display:inline-block; padding: 2px 11px; border-radius: 999px; font-family:'IBM Plex Mono', monospace; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em; }
+.badge-safe { background: rgba(75,115,97,0.13); color: var(--sage); border: 1px solid var(--sage); }
+.badge-medium { background: rgba(184,134,59,0.14); color: var(--ochre); border: 1px solid var(--ochre); }
+.badge-high { background: rgba(156,59,46,0.13); color: var(--brick); border: 1px solid var(--brick); }
+.badge-neutral { background: rgba(47,59,92,0.10); color: var(--indigo); border: 1px solid var(--indigo); }
+
+.meter-wrap { margin: 0.5rem 0 0.2rem 0; }
+.meter-row { display:flex; align-items:center; gap:0.7rem; margin: 0.32rem 0; }
+.meter-label { width: 132px; flex-shrink:0; font-size: 0.82rem; color: var(--ink); }
+.meter-track { flex:1; height: 9px; background: var(--hairline); border-radius: 5px; overflow:hidden; }
+.meter-fill { height:100%; border-radius:5px; }
+.meter-value { width: 40px; text-align:right; font-size: 0.76rem; color: #4A4E5C; }
+.meter-empty { font-size: 0.86rem; color: var(--sage); font-weight: 500; }
+
+.legend-row { display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; margin: 0.2rem 0; color:#4A4E5C; }
+.legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+[data-testid="stButton"] button {
+  background: var(--indigo) !important; color: var(--paper) !important;
+  border: none !important; border-radius: 7px !important; font-weight: 600 !important;
+  padding: 0.5rem 1.3rem !important; transition: background 0.15s ease;
+}
+[data-testid="stButton"] button:hover { background: var(--indigo-dark) !important; }
+[data-testid="stButton"] button p { color: var(--paper) !important; }
+
+[data-testid="stRadio"] > div[role="radiogroup"] { gap: 0.5rem; flex-wrap: wrap; }
+[data-testid="stRadio"] label {
+  background: white; border: 1px solid var(--hairline); padding: 0.4rem 1rem 0.4rem 0.6rem;
+  border-radius: 999px; margin: 0 !important;
+}
+[data-testid="stRadio"] label:has(input:checked) { background: var(--indigo); border-color: var(--indigo); }
+[data-testid="stRadio"] label:has(input:checked) p { color: var(--paper) !important; }
+[data-testid="stRadio"] input { accent-color: var(--indigo); }
+
+[data-testid="stExpander"] { border: 1px solid var(--hairline) !important; border-radius: 10px !important; background: white; }
+[data-testid="stExpander"] summary { font-weight: 600 !important; }
+
+[data-testid="stTextArea"] textarea, [data-testid="stFileUploaderDropzone"] {
+  border-radius: 8px !important; border: 1px solid var(--hairline) !important; background: white !important;
+}
+[data-testid="stTextArea"] textarea:focus { border-color: var(--indigo) !important; box-shadow: 0 0 0 1px var(--indigo) !important; }
+
+[data-testid="stAlert"] { border-radius: 8px !important; border: 1px solid var(--hairline) !important; }
+[data-testid="stVerticalBlockBorderWrapper"] { border-color: var(--hairline) !important; border-radius: 10px !important; }
+
+[data-testid="stCaptionContainer"] { color: #4A4E5C !important; }
+</style>
+"""
+
+
+def inject_custom_css():
+    st.html(CUSTOM_CSS)
+
+
+def render_masthead():
+    st.markdown(
+        """
+        <div class="masthead">
+            <h1>Indian-context Bias Detector &amp; Mitigator</h1>
+            <div class="dek mono">IndiBias corpus &middot; Groq-hosted SLM/LLM ensemble &middot;
+            Gender &mdash; Caste &mdash; Religion &mdash; Age &mdash; Region &mdash; Appearance &mdash; Socioeconomic</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_eyebrow(text: str):
+    st.markdown(f"<div class='eyebrow'>{html.escape(text)}</div>", unsafe_allow_html=True)
+
+
+def severity_tier(score: float) -> tuple[str, str]:
+    """Returns (css_class_suffix, hex_color) for a bias score on the 0-1 scale."""
+    if score >= 0.65:
+        return "high", "var(--brick)"
+    if score >= 0.5:
+        return "medium", "var(--ochre)"
+    return "safe", "var(--sage)"
+
+
+def render_badge(label: str, kind: str = "neutral"):
+    st.markdown(f"<span class='badge badge-{kind}'>{html.escape(label)}</span>", unsafe_allow_html=True)
+
+
+def render_score_meter(axis_scores: dict, empty_message: str = "No bias detected above threshold."):
+    """The signature visual: a horizontal reading for every flagged axis,
+    colored on the same sage -> ochre -> brick scale used everywhere in the app."""
+    if not axis_scores:
+        st.markdown(f"<div class='meter-empty'>&#10003; {html.escape(empty_message)}</div>", unsafe_allow_html=True)
+        return
+
+    rows = []
+    for axis, score in sorted(axis_scores.items(), key=lambda item: -item[1]):
+        _, color = severity_tier(score)
+        width_pct = max(4, min(100, round(score * 100)))
+        rows.append(
+            f"<div class='meter-row'><div class='meter-label'>{html.escape(axis)}</div>"
+            f"<div class='meter-track'><div class='meter-fill' style='width:{width_pct}%; background:{color};'></div></div>"
+            f"<div class='meter-value'>{score:.2f}</div></div>"
+        )
+    st.markdown(f"<div class='meter-wrap'>{''.join(rows)}</div>", unsafe_allow_html=True)
+
+
+def severity_emoji(score: float) -> str:
+    tier, _ = severity_tier(score)
+    return {"high": "\U0001F534", "medium": "\U0001F7E1", "safe": "\U0001F7E2"}[tier]
+
+
+def status_badge_kind(result: dict) -> str:
+    if not result.get("needs_human_review"):
+        return "safe"
+    return "high" if result.get("status") == "no_safe_candidate" else "medium"
+
+
+def render_legend():
+    render_eyebrow("Severity scale")
+    st.markdown(
+        """
+        <div class="legend-row"><span class="legend-dot" style="background:var(--sage);"></span>Low &middot; &lt; 0.50</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--ochre);"></span>Moderate &middot; 0.50&ndash;0.65</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--brick);"></span>High &middot; &ge; 0.65</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_sidebar():
+    with st.sidebar:
+        render_eyebrow("Dataset")
+        st.markdown("**IndiBias** &mdash; Indian-context stereotype corpus", unsafe_allow_html=True)
+        st.markdown("---")
+        render_eyebrow("Models")
+        st.markdown(
+            f"Generation: `{next(iter(SLM_MODELS.values()))}`  \n"
+            f"SLM mitigator: `{SLM_MITIGATOR_MODEL}`  \n"
+            f"LLM mitigator: `{LLM_MITIGATOR_MODEL}`"
+        )
+        st.markdown("---")
+        render_eyebrow("Bias threshold")
+        st.markdown(f"<span class='mono'>{BIAS_THRESHOLD:.2f}</span> similarity to corpus", unsafe_allow_html=True)
+        st.markdown("---")
+        render_eyebrow("Axes monitored")
+        st.markdown(", ".join(BIAS_AXES))
+        st.markdown("---")
+        render_legend()
 
 
 def decode_text_bytes(data: bytes) -> str:
@@ -138,7 +315,10 @@ def render_paragraph_text(text: str):
 
     for paragraph in paragraphs:
         safe_text = html.escape(paragraph)
-        st.markdown(f"<p style='white-space: pre-wrap; line-height: 1.6; margin-bottom: 0.75rem;'>{safe_text}</p>", unsafe_allow_html=True)
+        st.markdown(
+            f"<p style='white-space: pre-wrap; line-height: 1.65; margin-bottom: 0.75rem; color: var(--ink);'>{safe_text}</p>",
+            unsafe_allow_html=True,
+        )
 
 
 def model_bias_score(axis_scores: dict) -> float:
@@ -279,33 +459,35 @@ def render_mitigation_pipeline_result(original_text: str, flagged_axes: list[str
     render_paragraph_text(result["text"])
 
     status_line = STATUS_LABELS.get(result["status"], result["status"])
-    if result["needs_human_review"]:
-        st.warning(f"{status_line}")
-    else:
-        st.caption(f"Stage used: {result['stage_used']} — {status_line}")
+    render_badge(f"Stage: {result['stage_used']}" if not result["needs_human_review"] else "Needs review",
+                 kind=status_badge_kind(result))
+    st.caption(status_line)
 
-    st.caption(
-        "Before: " + ", ".join(f"{a}: {s:.2f}" for a, s in result["original_scores"].items())
-        + " | After: "
-        + (", ".join(f"{a}: {s:.2f}" for a, s in result["final_scores"].items()) if result["final_scores"] else "no bias detected")
-    )
+    render_eyebrow("Before")
+    render_score_meter(result["original_scores"])
+    render_eyebrow("After")
+    render_score_meter(result["final_scores"])
 
     with st.expander("Candidates considered (Stage C scoring detail)", expanded=False):
         for c in sorted(result["candidates"], key=lambda c: (-c["passes_bias_check"], -c["similarity"])):
+            kind = "safe" if c["passes_bias_check"] else "high"
             check_mark = "passed bias check" if c["passes_bias_check"] else "failed bias check"
-            st.write(
-                f"- {c['label']} — {check_mark}, bias score {c['flagged_score']:.2f}, "
-                f"similarity to original {c['similarity']:.2f}"
+            render_badge(check_mark, kind=kind)
+            st.caption(
+                f"{c['label']} &nbsp;&middot;&nbsp; bias score {c['flagged_score']:.2f} "
+                f"&nbsp;&middot;&nbsp; similarity to original {c['similarity']:.2f}"
             )
             with st.container():
                 st.caption(c["text"])
+            st.markdown("<hr style='margin:0.4rem 0;'>", unsafe_allow_html=True)
 
 
 def render_assessment_result(text: str, source_label: str) -> dict:
     assessment = assess_text_type(text)
     label = assessment.get("label", "unclear")
     reason = assessment.get("reason", "")
-    st.caption(f"Content check: {label.replace('_', ' ')}")
+    render_eyebrow("Content check")
+    render_badge(label.replace("_", " ").title(), kind="neutral")
     if reason:
         st.info(reason)
     return assessment
@@ -330,32 +512,34 @@ def run_direct_analysis(input_text: str, source_label: str):
         axis_scores, matches = detect_bias(text, threshold=BIAS_THRESHOLD)
 
     st.subheader(f"Input text ({source_label})")
-    render_paragraph_text(text)
+    with st.container(border=True):
+        render_paragraph_text(text)
 
-    if axis_scores:
-        st.subheader("Bias detected")
-        for axis, score in sorted(axis_scores.items(), key=lambda item: -item[1]):
-            st.write(f"{axis}: similarity {score:.2f}")
-        for match in matches:
-            st.write(f"- {format_bias_reason(match)}")
-    else:
-        st.subheader("Bias analysis")
-        st.write("No bias detected above threshold.")
+    st.subheader("Bias profile")
+    with st.container(border=True):
+        render_score_meter(axis_scores)
+        if matches:
+            with st.expander("Matched evidence", expanded=False):
+                for match in matches:
+                    st.caption(format_bias_reason(match))
 
     flagged_axes = [axis for axis, score in axis_scores.items() if score > BIAS_THRESHOLD]
     if flagged_axes:
-        st.subheader("Mitigation (SLM vs LLM Comparison)")
+        st.subheader("Mitigation — SLM vs. LLM")
         bias_reasons = [format_bias_reason(match) for match in matches if match["axis"] in flagged_axes]
         slm_col, llm_col = st.columns(2)
         with slm_col:
-            st.markdown(f"#### SLM Mitigation ({SLM_MITIGATOR_MODEL.split('/')[-1]})")
-            render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
+            with st.container(border=True):
+                render_eyebrow(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
         with llm_col:
-            st.markdown(f"#### LLM Mitigation ({LLM_MITIGATOR_MODEL.split('/')[-1]})")
-            render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
+            with st.container(border=True):
+                render_eyebrow(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
     else:
         st.subheader("Mitigation")
-        st.write("No mitigation needed — nothing crossed the bias threshold.")
+        render_badge("Not needed", kind="safe")
+        st.caption("Nothing crossed the bias threshold.")
 
 
 def run_analysis(input_text: str, source_label: str):
@@ -377,94 +561,111 @@ def run_analysis(input_text: str, source_label: str):
     for name, text_output in outputs.items():
         axes = per_model.get(name, {})
         score = model_bias_score(axes)
-        with st.expander(f"{name} · bias score {score:.2f}", expanded=(name == best_model)):
+        label = f"{severity_emoji(score)}  {name}  ·  bias score {score:.2f}"
+        with st.expander(label, expanded=(name == best_model)):
             render_paragraph_text(text_output)
-            st.caption(
-                "Flagged: " + ", ".join(f"{a} ({s:.2f})" for a, s in axes.items()) if axes else "No bias flagged"
-            )
+            render_eyebrow("Bias profile")
+            render_score_meter(axes, empty_message="No bias flagged.")
 
     if best_model is not None:
         best_assessment = assess_text_type(outputs[best_model])
 
-    if consensus:
-        st.subheader("Why a response was flagged")
-        for axis, v in consensus.items():
-            st.write(f"{axis}: flagged with average similarity {v['avg_score']:.2f}")
-            for reason in consensus_reason_map.get(axis, []):
-                st.write(f"- {reason}")
-    else:
-        st.subheader("Bias analysis")
-        st.write("No bias detected above threshold across any model.")
+    st.subheader("Why a response was flagged")
+    with st.container(border=True):
+        if consensus:
+            consensus_scores = {axis: v["avg_score"] for axis, v in consensus.items()}
+            render_score_meter(consensus_scores, empty_message="No bias detected above threshold across any model.")
+            for axis in consensus:
+                reasons = consensus_reason_map.get(axis, [])
+                if reasons:
+                    with st.expander(f"Evidence — {axis}", expanded=False):
+                        for reason in reasons:
+                            st.caption(reason)
+        else:
+            render_score_meter({}, empty_message="No bias detected above threshold across any model.")
 
     flagged_axes = [axis for axis, v in consensus.items() if v["avg_score"] > BIAS_THRESHOLD]
     if best_model is not None and best_assessment.get("proceed", True) and flagged_axes:
-        st.subheader(f"Mitigation (rewriting the output from {best_model})")
+        st.subheader(f"Mitigation — rewriting the output from {best_model}")
         best_text = outputs[best_model]
         best_matches = per_model_matches.get(best_model, [])
         bias_reasons = [format_bias_reason(m) for m in best_matches if m["axis"] in flagged_axes]
         slm_col, llm_col = st.columns(2)
         with slm_col:
-            st.markdown(f"#### SLM Mitigation ({SLM_MITIGATOR_MODEL.split('/')[-1]})")
-            render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
+            with st.container(border=True):
+                render_eyebrow(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
         with llm_col:
-            st.markdown(f"#### LLM Mitigation ({LLM_MITIGATOR_MODEL.split('/')[-1]})")
-            render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
+            with st.container(border=True):
+                render_eyebrow(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
     elif best_model is not None and not best_assessment.get("proceed", True):
         st.subheader("Mitigation")
-        st.write("This response does not require bias mitigation.")
+        render_badge("Not required", kind="safe")
+        st.caption("This response does not require bias mitigation.")
     else:
         st.subheader("Mitigation")
-        st.write("No mitigation needed — nothing crossed the bias threshold.")
+        render_badge("Not needed", kind="safe")
+        st.caption("Nothing crossed the bias threshold.")
 
 
 # ---------------- UI ----------------
 
-st.set_page_config(page_title="Indian-context Bias Detector", layout="wide")
-st.title("Indian-context Bias Detector & Mitigator")
-st.caption("Grounded in the IndiBias dataset — checks gender, caste, religion, age, region, appearance, socioeconomic bias")
+inject_custom_css()
+render_masthead()
+render_sidebar()
+
+st.write("")
 
 if not GROQ_API_KEY:
     st.warning("No GROQ_API_KEY set. Get a free one at console.groq.com and set it as an environment variable (or HF Space secret) to enable live model calls.")
 
+render_eyebrow("Choose input type")
 input_mode = st.radio(
     "Choose input type",
     ["Generate from prompt", "Manual text", "Upload file"],
     horizontal=True,
+    label_visibility="collapsed",
 )
 
+st.write("")
+
 if input_mode == "Generate from prompt":
-    st.caption("The SLM generates a response to your prompt, then that response is checked and mitigated.")
-    prompt = st.text_area(
-        "Prompt to send to the SLM",
-        height=220,
-        placeholder="e.g. Describe a typical Indian family's financial situation.",
-    )
-    if st.button("Generate & analyze"):
-        run_analysis(prompt, "generated content")
+    with st.container(border=True):
+        st.caption("The SLM generates a response to your prompt, then that response is checked and mitigated.")
+        prompt = st.text_area(
+            "Prompt to send to the SLM",
+            height=220,
+            placeholder="e.g. Describe a typical Indian family's financial situation.",
+        )
+        if st.button("Generate & analyze"):
+            run_analysis(prompt, "generated content")
 
 elif input_mode == "Manual text":
-    st.caption("This text is checked directly for bias — nothing is generated first.")
-    manual_text = st.text_area(
-        "Paste text to check",
-        height=220,
-        placeholder="e.g. The brahmin family lived in a luxurious mansion.",
-    )
-    if st.button("Detect & mitigate"):
-        run_direct_analysis(manual_text, "manual text")
+    with st.container(border=True):
+        st.caption("This text is checked directly for bias — nothing is generated first.")
+        manual_text = st.text_area(
+            "Paste text to check",
+            height=220,
+            placeholder="e.g. The brahmin family lived in a luxurious mansion.",
+        )
+        if st.button("Detect & mitigate"):
+            run_direct_analysis(manual_text, "manual text")
 
 else:  # Upload file
-    st.caption("The extracted text is checked directly for bias — nothing is generated first.")
-    uploaded_file = st.file_uploader(
-        "Upload a text file",
-        type=["txt", "md", "csv", "json", "py", "log", "xml", "html", "htm", "yaml", "yml", "ini"],
-    )
-    if uploaded_file is not None:
-        extracted_text, extraction_error = extract_text_from_upload(uploaded_file)
-        if extraction_error:
-            st.warning(extraction_error)
-        else:
-            st.caption(f"Extracted text from {uploaded_file.name}")
-            with st.expander("Preview extracted text", expanded=False):
-                render_paragraph_text(extracted_text)
-            if st.button("Detect & mitigate"):
-                run_direct_analysis(extracted_text, f"uploaded file {uploaded_file.name}")
+    with st.container(border=True):
+        st.caption("The extracted text is checked directly for bias — nothing is generated first.")
+        uploaded_file = st.file_uploader(
+            "Upload a text file",
+            type=["txt", "md", "csv", "json", "py", "log", "xml", "html", "htm", "yaml", "yml", "ini"],
+        )
+        if uploaded_file is not None:
+            extracted_text, extraction_error = extract_text_from_upload(uploaded_file)
+            if extraction_error:
+                st.warning(extraction_error)
+            else:
+                st.caption(f"Extracted text from {uploaded_file.name}")
+                with st.expander("Preview extracted text", expanded=False):
+                    render_paragraph_text(extracted_text)
+                if st.button("Detect & mitigate"):
+                    run_direct_analysis(extracted_text, f"uploaded file {uploaded_file.name}")
