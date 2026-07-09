@@ -44,16 +44,15 @@ BIAS_AXES = ["Gender", "Caste", "Religion", "Age", "Region", "Appearance", "Soci
 
 
 # ---------------- Design system ----------------
-# Palette: a cool "lab notebook" tone, not the cream/terracotta or near-black
-# defaults — a pale slate background, indigo as the working color, and a
-# three-step severity ramp (sage -> ochre -> brick) reserved for scores.
+# Bold version: saturated indigo/violet gradient identity, vivid emerald/amber/red
+# severity scale, color-coded accents everywhere instead of hairline neutrals.
 CUSTOM_CSS = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F1F2F6; --ink:#1B1E2A; --indigo:#2F3B5C; --indigo-dark:#232C46;
-  --brick:#9C3B2E; --ochre:#B8863B; --sage:#4B7361; --hairline:#D6D9E1;
+  --paper:#F5F5FF; --ink:#171734; --indigo:#4F3CC9; --violet:#8B2FC9; --teal:#0891B2;
+  --brick:#E11D48; --ochre:#D97706; --sage:#059669; --hairline:#DCD9F7;
 }
 html, body, [data-testid="stAppViewContainer"], .main { background: var(--paper) !important; }
 [data-testid="stHeader"] { background: transparent !important; }
@@ -61,60 +60,82 @@ html, body, [data-testid="stAppViewContainer"], .main { background: var(--paper)
 html, body, p, div, span, label, li, textarea, input { font-family: 'IBM Plex Sans', sans-serif; }
 h1, h2, h3 { font-family: 'Fraunces', serif !important; color: var(--indigo) !important; font-weight: 600 !important; letter-spacing: -0.01em; }
 code, .mono, .eyebrow, .meter-value { font-family: 'IBM Plex Mono', monospace !important; }
-.block-container { max-width: 980px; padding-top: 1.5rem; }
+.block-container { max-width: 1000px; padding-top: 1rem; }
 hr { border-color: var(--hairline) !important; }
 
-.masthead { border-bottom: 2px solid var(--ink); padding-bottom: 0.9rem; margin-bottom: 0.4rem; }
-.masthead h1 { margin: 0 0 0.25rem 0; font-size: 2.1rem; }
-.masthead .dek { color: #4A4E5C; font-size: 0.95rem; }
-.eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: var(--indigo); font-weight: 600; margin-bottom: 0.3rem; }
+.masthead {
+  background: linear-gradient(120deg, var(--indigo) 0%, var(--violet) 65%, var(--teal) 130%);
+  border-radius: 16px; padding: 1.9rem 2.1rem; margin-bottom: 1.1rem;
+  box-shadow: 0 10px 30px -12px rgba(79,60,201,0.55);
+}
+.masthead h1 { margin: 0 0 0.35rem 0; font-size: 2.15rem; color: #FFFFFF !important; }
+.masthead .dek { color: rgba(255,255,255,0.88); font-size: 0.95rem; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.72rem; color: var(--violet); font-weight: 700; margin-bottom: 0.3rem; }
 
-.badge { display:inline-block; padding: 2px 11px; border-radius: 999px; font-family:'IBM Plex Mono', monospace; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em; }
-.badge-safe { background: rgba(75,115,97,0.13); color: var(--sage); border: 1px solid var(--sage); }
-.badge-medium { background: rgba(184,134,59,0.14); color: var(--ochre); border: 1px solid var(--ochre); }
-.badge-high { background: rgba(156,59,46,0.13); color: var(--brick); border: 1px solid var(--brick); }
-.badge-neutral { background: rgba(47,59,92,0.10); color: var(--indigo); border: 1px solid var(--indigo); }
+.badge { display:inline-block; padding: 3px 12px; border-radius: 999px; font-family:'IBM Plex Mono', monospace; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.01em; color: #fff !important; box-shadow: 0 2px 6px -2px rgba(0,0,0,0.35); }
+.badge-safe { background: var(--sage); }
+.badge-medium { background: var(--ochre); }
+.badge-high { background: var(--brick); }
+.badge-neutral { background: var(--indigo); }
+.badge-llm { background: linear-gradient(120deg, var(--violet), var(--brick)); }
+.badge-slm { background: linear-gradient(120deg, var(--teal), var(--indigo)); }
 
 .meter-wrap { margin: 0.5rem 0 0.2rem 0; }
-.meter-row { display:flex; align-items:center; gap:0.7rem; margin: 0.32rem 0; }
-.meter-label { width: 132px; flex-shrink:0; font-size: 0.82rem; color: var(--ink); }
-.meter-track { flex:1; height: 9px; background: var(--hairline); border-radius: 5px; overflow:hidden; }
-.meter-fill { height:100%; border-radius:5px; }
-.meter-value { width: 40px; text-align:right; font-size: 0.76rem; color: #4A4E5C; }
-.meter-empty { font-size: 0.86rem; color: var(--sage); font-weight: 500; }
+.meter-row { display:flex; align-items:center; gap:0.7rem; margin: 0.38rem 0; }
+.meter-label { width: 132px; flex-shrink:0; font-size: 0.83rem; font-weight: 500; color: var(--ink); }
+.meter-track { flex:1; height: 11px; background: var(--hairline); border-radius: 6px; overflow:hidden; }
+.meter-fill { height:100%; border-radius:6px; }
+.meter-value { width: 40px; text-align:right; font-size: 0.78rem; font-weight: 600; color: var(--ink); }
+.meter-empty { font-size: 0.88rem; color: var(--sage); font-weight: 600; }
 
-.legend-row { display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; margin: 0.2rem 0; color:#4A4E5C; }
-.legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.legend-row { display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; margin: 0.25rem 0; color: rgba(255,255,255,0.85); }
+.legend-dot { width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow: 0 0 6px 0 currentColor; }
+
+.accent-card { border-radius: 12px; padding: 1px; margin-bottom: 0.6rem; }
+.accent-card-slm { background: linear-gradient(135deg, var(--teal), var(--indigo)); }
+.accent-card-llm { background: linear-gradient(135deg, var(--violet), var(--brick)); }
 
 [data-testid="stButton"] button {
-  background: var(--indigo) !important; color: var(--paper) !important;
-  border: none !important; border-radius: 7px !important; font-weight: 600 !important;
-  padding: 0.5rem 1.3rem !important; transition: background 0.15s ease;
+  background: linear-gradient(120deg, var(--indigo), var(--violet)) !important; color: #fff !important;
+  border: none !important; border-radius: 8px !important; font-weight: 700 !important;
+  padding: 0.55rem 1.4rem !important; transition: transform 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 4px 14px -4px rgba(79,60,201,0.55) !important;
 }
-[data-testid="stButton"] button:hover { background: var(--indigo-dark) !important; }
-[data-testid="stButton"] button p { color: var(--paper) !important; }
+[data-testid="stButton"] button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(139,47,201,0.6) !important; }
+[data-testid="stButton"] button p { color: #fff !important; }
 
 [data-testid="stRadio"] > div[role="radiogroup"] { gap: 0.5rem; flex-wrap: wrap; }
 [data-testid="stRadio"] label {
-  background: white; border: 1px solid var(--hairline); padding: 0.4rem 1rem 0.4rem 0.6rem;
-  border-radius: 999px; margin: 0 !important;
+  background: white; border: 2px solid var(--hairline); padding: 0.4rem 1.1rem 0.4rem 0.6rem;
+  border-radius: 999px; margin: 0 !important; transition: all 0.12s ease;
 }
-[data-testid="stRadio"] label:has(input:checked) { background: var(--indigo); border-color: var(--indigo); }
-[data-testid="stRadio"] label:has(input:checked) p { color: var(--paper) !important; }
+[data-testid="stRadio"] label:has(input:checked) {
+  background: linear-gradient(120deg, var(--indigo), var(--violet)); border-color: transparent;
+  box-shadow: 0 4px 12px -4px rgba(79,60,201,0.5);
+}
+[data-testid="stRadio"] label:has(input:checked) p { color: #fff !important; font-weight: 600; }
 [data-testid="stRadio"] input { accent-color: var(--indigo); }
 
-[data-testid="stExpander"] { border: 1px solid var(--hairline) !important; border-radius: 10px !important; background: white; }
-[data-testid="stExpander"] summary { font-weight: 600 !important; }
+[data-testid="stExpander"] { border: 2px solid var(--hairline) !important; border-radius: 12px !important; background: white; }
+[data-testid="stExpander"] summary { font-weight: 700 !important; color: var(--indigo) !important; }
 
 [data-testid="stTextArea"] textarea, [data-testid="stFileUploaderDropzone"] {
-  border-radius: 8px !important; border: 1px solid var(--hairline) !important; background: white !important;
+  border-radius: 10px !important; border: 2px solid var(--hairline) !important; background: white !important;
 }
-[data-testid="stTextArea"] textarea:focus { border-color: var(--indigo) !important; box-shadow: 0 0 0 1px var(--indigo) !important; }
+[data-testid="stTextArea"] textarea:focus { border-color: var(--violet) !important; box-shadow: 0 0 0 2px rgba(139,47,201,0.25) !important; }
 
-[data-testid="stAlert"] { border-radius: 8px !important; border: 1px solid var(--hairline) !important; }
-[data-testid="stVerticalBlockBorderWrapper"] { border-color: var(--hairline) !important; border-radius: 10px !important; }
+[data-testid="stAlert"] { border-radius: 10px !important; border: 2px solid var(--hairline) !important; }
+[data-testid="stVerticalBlockBorderWrapper"] { border: 2px solid var(--hairline) !important; border-radius: 14px !important; box-shadow: 0 6px 18px -10px rgba(79,60,201,0.25); }
 
-[data-testid="stCaptionContainer"] { color: #4A4E5C !important; }
+[data-testid="stCaptionContainer"] { color: #565478 !important; }
+
+[data-testid="stSidebar"] {
+  background: linear-gradient(200deg, #201A4D 0%, #3B1F73 60%, #4F3CC9 130%) !important;
+}
+[data-testid="stSidebar"] * { color: #F1EEFF !important; }
+[data-testid="stSidebar"] .eyebrow { color: #C9B8FF !important; }
+[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.18) !important; }
+[data-testid="stSidebar"] code { background: rgba(255,255,255,0.12) !important; color: #FFD9EE !important; }
 </style>
 """
 
@@ -187,9 +208,9 @@ def render_legend():
     render_eyebrow("Severity scale")
     st.markdown(
         """
-        <div class="legend-row"><span class="legend-dot" style="background:var(--sage);"></span>Low &middot; &lt; 0.50</div>
-        <div class="legend-row"><span class="legend-dot" style="background:var(--ochre);"></span>Moderate &middot; 0.50&ndash;0.65</div>
-        <div class="legend-row"><span class="legend-dot" style="background:var(--brick);"></span>High &middot; &ge; 0.65</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--sage); color:var(--sage);"></span>Low &middot; &lt; 0.50</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--ochre); color:var(--ochre);"></span>Moderate &middot; 0.50&ndash;0.65</div>
+        <div class="legend-row"><span class="legend-dot" style="background:var(--brick); color:var(--brick);"></span>High &middot; &ge; 0.65</div>
         """,
         unsafe_allow_html=True,
     )
@@ -530,11 +551,11 @@ def run_direct_analysis(input_text: str, source_label: str):
         slm_col, llm_col = st.columns(2)
         with slm_col:
             with st.container(border=True):
-                render_eyebrow(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_badge(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}", kind="slm")
                 render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
         with llm_col:
             with st.container(border=True):
-                render_eyebrow(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_badge(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}", kind="llm")
                 render_mitigation_pipeline_result(text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
     else:
         st.subheader("Mitigation")
@@ -593,11 +614,11 @@ def run_analysis(input_text: str, source_label: str):
         slm_col, llm_col = st.columns(2)
         with slm_col:
             with st.container(border=True):
-                render_eyebrow(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_badge(f"SLM · {SLM_MITIGATOR_MODEL.split('/')[-1]}", kind="slm")
                 render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=SLM_MITIGATOR_MODEL)
         with llm_col:
             with st.container(border=True):
-                render_eyebrow(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}")
+                render_badge(f"LLM · {LLM_MITIGATOR_MODEL.split('/')[-1]}", kind="llm")
                 render_mitigation_pipeline_result(best_text, flagged_axes, bias_reasons, model_id=LLM_MITIGATOR_MODEL)
     elif best_model is not None and not best_assessment.get("proceed", True):
         st.subheader("Mitigation")
