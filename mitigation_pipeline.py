@@ -92,11 +92,8 @@ def generate_ai_candidates(text: str, flagged_axes: list[str], bias_reasons: lis
     for label, temperature, framing_hint in CANDIDATE_FRAMINGS:
         extra_reasons = (bias_reasons or []) + [framing_hint]
         text_out = mitigator_module.mitigate(text, flagged_axes, extra_reasons, temperature=temperature, model_id=model_id)
-        if text_out:
-            if text_out.startswith("(mitigation") or text_out.startswith("(error"):
-                candidates.append({"label": f"AI rewrite ({label}) [API Error]", "text": text_out})
-            else:
-                candidates.append({"label": f"AI rewrite ({label})", "text": text_out})
+        if text_out and not text_out.startswith("(mitigation") and not text_out.startswith("(error"):
+            candidates.append({"label": f"AI rewrite ({label})", "text": text_out})
         time.sleep(1.5)  # Avoid Groq 429 rate limit bursts
     return candidates
 
@@ -221,11 +218,8 @@ def mitigate_pipeline(
         ]
         importlib.reload(mitigator_module)
         stricter_text = mitigator_module.mitigate(original_text, flagged_axes, stricter_reasons, temperature=0.2, model_id=model_id)
-        if stricter_text:
-            if stricter_text.startswith("(mitigation") or stricter_text.startswith("(error"):
-                stricter_candidates = candidates + [{"label": "AI rewrite (stricter, final attempt) [API Error]", "text": stricter_text}]
-            else:
-                stricter_candidates = candidates + [{"label": "AI rewrite (stricter, final attempt)", "text": stricter_text}]
+        if stricter_text and not stricter_text.startswith("(mitigation") and not stricter_text.startswith("(error"):
+            stricter_candidates = candidates + [{"label": "AI rewrite (stricter, final attempt)", "text": stricter_text}]
         else:
             stricter_candidates = candidates
         best, scored, status = select_best_candidate(original_text, stricter_candidates, flagged_axes, threshold)
