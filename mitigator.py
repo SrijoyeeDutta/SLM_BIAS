@@ -54,16 +54,34 @@ def mitigate(
         "temperature": temperature,
     }
 
-    try:
-        response = requests.post(ROUTER_URL, headers=headers, json=payload, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        rewritten = strip_think_tags(result["choices"][0]["message"]["content"])
-        return rewritten if rewritten else "(mitigation failed — try again)"
-    except requests.exceptions.HTTPError as e:
-        return f"(mitigation model unavailable: {e.response.status_code})"
-    except Exception as e:
-        return f"(mitigation error: {e})"
+    import time
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(ROUTER_URL, headers=headers, json=payload, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            rewritten = strip_think_tags(result["choices"][0]["message"]["content"])
+            if rewritten:
+                return rewritten
+            
+            # If empty, try again
+            if attempt == max_retries - 1:
+                return "(mitigation failed — try again)"
+                
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429 and attempt < max_retries - 1:
+                retry_after = e.response.headers.get("Retry-After")
+                wait_time = float(retry_after) if retry_after else (2 ** attempt) * 2.0
+                time.sleep(wait_time)
+                continue
+            return f"(mitigation model unavailable: {e.response.status_code})"
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2.0)
+                continue
+            return f"(mitigation error: {e})"
 
 
 if __name__ == "__main__":
