@@ -9,9 +9,9 @@ import re
 
 import streamlit as st
 try:
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", st.secrets.get("GROQ_API_KEY", "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"))
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", st.secrets.get("GROQ_API_KEY", ""))
 except Exception:
-    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 ROUTER_URL = "https://api.groq.com/openai/v1/chat/completions"
 MITIGATOR_MODEL_ID = "llama-3.1-8b-instant"
 
