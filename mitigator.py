@@ -50,7 +50,7 @@ def mitigate(
     payload = {
         "model": model_id or MITIGATOR_MODEL_ID,
         "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 1024,
+        "max_tokens": 4096,
         "temperature": temperature,
     }
 
