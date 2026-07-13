@@ -13,6 +13,33 @@ import os
 import html
 import re
 import json
+import uuid
+from datetime import datetime
+
+TEST_CASES_FILE = "test_cases.json"
+
+def log_test_case(input_text: str, output_text: str, detected_bias: bool, max_score: float):
+    if not os.path.exists(TEST_CASES_FILE):
+        data = []
+    else:
+        try:
+            with open(TEST_CASES_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except:
+            data = []
+            
+    entry = {
+        "id": str(uuid.uuid4()),
+        "timestamp": datetime.now().isoformat(),
+        "Input": input_text,
+        "Output": output_text,
+        "Detected Bias": detected_bias,
+        "Max Score": round(max_score, 2),
+        "Expected Bias": None
+    }
+    data.append(entry)
+    with open(TEST_CASES_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 from detector import detect_bias
 from mitigation_pipeline import mitigate_pipeline
@@ -545,6 +572,10 @@ def run_direct_analysis(input_text: str, source_label: str):
                     st.caption(format_bias_reason(match))
 
     flagged_axes = [axis for axis, score in axis_scores.items() if score > BIAS_THRESHOLD]
+    detected_bias = len(flagged_axes) > 0
+    max_score = max(axis_scores.values()) if axis_scores else 0.0
+    log_test_case(text, text, detected_bias, max_score)
+
     if flagged_axes:
         st.subheader("Mitigation — SLM vs. LLM")
         bias_reasons = [format_bias_reason(match) for match in matches if match["axis"] in flagged_axes]
@@ -606,6 +637,12 @@ def run_analysis(input_text: str, source_label: str):
             render_score_meter({}, empty_message="No bias detected above threshold across any model.")
 
     flagged_axes = [axis for axis, v in consensus.items() if v["avg_score"] > BIAS_THRESHOLD]
+    detected_bias = len(flagged_axes) > 0
+    if best_model is not None:
+        best_text = outputs[best_model]
+        max_score = max(per_model.get(best_model, {}).values()) if per_model.get(best_model) else 0.0
+        log_test_case(text, best_text, detected_bias, max_score)
+
     if best_model is not None and best_assessment.get("proceed", True) and flagged_axes:
         st.subheader(f"Mitigation — rewriting the output from {best_model}")
         best_text = outputs[best_model]
@@ -629,6 +666,122 @@ def run_analysis(input_text: str, source_label: str):
         render_badge("Not needed", kind="safe")
         st.caption("Nothing crossed the bias threshold.")
 
+def run_test_cases_ui():
+    if not os.path.exists(TEST_CASES_FILE):
+        st.info("No test cases recorded yet. Run tests in 'Generate from prompt', 'Manual text', or 'Upload file' modes first.")
+        return
+        
+    try:
+        with open(TEST_CASES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        st.error(f"Error reading test cases: {e}")
+        return
+        
+    if not data:
+        st.info("No test cases recorded yet.")
+        return
+
+    import pandas as pd
+    df = pd.DataFrame(data)
+    
+    def map_expected(val):
+        if val is True: return "Yes"
+        if val is False: return "No"
+        return "Unlabeled"
+        
+    df["Expected Bias"] = df["Expected Bias"].apply(map_expected)
+    df["Delete"] = False
+    
+    config = {
+        "Delete": st.column_config.CheckboxColumn("Delete?", default=False),
+        "Expected Bias": st.column_config.SelectboxColumn(
+            "Expected Bias (Ground Truth)",
+            options=["Yes", "No", "Unlabeled"],
+            required=True
+        ),
+        "id": None,
+        "timestamp": st.column_config.DatetimeColumn("Run Time", format="DD/MM/YYYY HH:mm"),
+        "Input": st.column_config.TextColumn("Input Text", width="large"),
+        "Output": st.column_config.TextColumn("Output Text", width="large"),
+    }
+    
+    st.subheader("Test History & Labeling")
+    st.caption("Review your past runs here. Check the 'Delete?' box to remove a case, or set the 'Expected Bias' column to 'Yes' or 'No' to calculate accuracy metrics.")
+    
+    edited_df = st.data_editor(
+        df,
+        column_config=config,
+        disabled=["timestamp", "Input", "Output", "Detected Bias", "Max Score"],
+        hide_index=True,
+        use_container_width=True
+    )
+    
+    rows_to_delete = edited_df[edited_df["Delete"] == True].index.tolist()
+    
+    if rows_to_delete:
+        st.warning(f"You have marked {len(rows_to_delete)} test case(s) for deletion.")
+        if st.button("Confirm Deletion", type="primary"):
+            for i in sorted(rows_to_delete, reverse=True):
+                del data[i]
+            with open(TEST_CASES_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            st.rerun()
+    else:
+        changed = False
+        for i in range(len(data)):
+            new_val = edited_df.iloc[i]["Expected Bias"]
+            if new_val == "Yes":
+                parsed_val = True
+            elif new_val == "No":
+                parsed_val = False
+            else:
+                parsed_val = None
+                
+            if data[i]["Expected Bias"] != parsed_val:
+                data[i]["Expected Bias"] = parsed_val
+                changed = True
+                
+        if changed:
+            with open(TEST_CASES_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+            st.rerun()
+        
+    tp, fp, tn, fn = 0, 0, 0, 0
+    for row in data:
+        expected = row["Expected Bias"]
+        if expected is not None:
+            detected = row["Detected Bias"]
+            if detected and expected: tp += 1
+            elif detected and not expected: fp += 1
+            elif not detected and not expected: tn += 1
+            elif not detected and expected: fn += 1
+            
+    total = tp + fp + tn + fn
+    st.subheader("Accuracy Metrics")
+    
+    if total == 0:
+        st.info("Label at least one test case above as 'Yes' or 'No' to see accuracy metrics.")
+        return
+        
+    accuracy = (tp + tn) / total if total > 0 else 0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Labeled Cases", total)
+    col2.metric("Accuracy", f"{accuracy:.2%}")
+    col3.metric("Precision", f"{precision:.2%}")
+    col4.metric("Recall (Sensitivity)", f"{recall:.2%}")
+    col5.metric("F1 Score", f"{f1_score:.2f}")
+    
+    st.caption(f"**True Positives:** {tp} &nbsp;|&nbsp; **False Positives:** {fp} &nbsp;|&nbsp; **True Negatives:** {tn} &nbsp;|&nbsp; **False Negatives:** {fn}")
+
+
+
+
+
 
 # ---------------- UI ----------------
 
@@ -644,7 +797,7 @@ if not GROQ_API_KEY:
 render_eyebrow("Choose input type")
 input_mode = st.radio(
     "Choose input type",
-    ["Generate from prompt", "Manual text", "Upload file"],
+    ["Generate from prompt", "Manual text", "Upload file", "Test cases"],
     horizontal=True,
     label_visibility="collapsed",
 )
@@ -673,7 +826,7 @@ elif input_mode == "Manual text":
         if st.button("Detect & mitigate"):
             run_direct_analysis(manual_text, "manual text")
 
-else:  # Upload file
+elif input_mode == "Upload file":
     with st.container(border=True):
         st.caption("The extracted text is checked directly for bias — nothing is generated first.")
         uploaded_file = st.file_uploader(
@@ -690,3 +843,7 @@ else:  # Upload file
                     render_paragraph_text(extracted_text)
                 if st.button("Detect & mitigate"):
                     run_direct_analysis(extracted_text, f"uploaded file {uploaded_file.name}")
+
+elif input_mode == "Test cases":
+    with st.container(border=True):
+        run_test_cases_ui()
