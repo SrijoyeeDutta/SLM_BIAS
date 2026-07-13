@@ -11,14 +11,14 @@ import re
 
 
 GROUP_PATTERNS = {
-    "caste": r"\b(brahmin|kshatriya|vaishya|shudra|sc/st|obc|dalit)s?\b",
-    "gender": r"\b(women|woman|men|man|female|male|girls?|boys?|mother|father|husband|wife|son|daughter|housewife|breadwinner)\b",
-    "religion": r"\b(muslims?|hindus?|christians?|sikhs?)\b",
-    "nationality": r"\b(indians?|americans?|chinese)\b",
-    "age": r"\b(grandparents?|grandfather|grandmother|older people|elderly people|seniors?|old people|aged people|young people|youth|teenagers?)\b",
-    "physical-appearance": r"\b(beautiful|ugly|handsome|plain|attractive|unattractive|pretty|uglier|fatter|thin|overweight|skinny)\b",
-    "socioeconomic": r"\b(poor|rich|wealthy|wealthier|wealthiest|middle class|lower class|upper class|income|salary|earning)\b",
-    "disability": r"\b(disabled|blind|deaf|dumb|crippled|handicapped|autistic|retarded|wheelchair|special needs)\b",
+    "caste": r"\b(brahmin|kshatriya|vaishya|shudra|sc/st|obc|dalit|caste)s?\b",
+    "gender": r"\b(women|woman|men|man|female|male|girls?|boys?|mother|father|husband|wife|son|daughter|housewife|breadwinner|gender)\b",
+    "religion": r"\b(muslims?|hindus?|christians?|sikhs?|religion)s?\b",
+    "nationality": r"\b(indians?|americans?|chinese|country|nationality)\b",
+    "age": r"\b(grandparents?|grandfather|grandmother|older people|elderly people|seniors?|old people|aged people|young people|youth|teenagers?|age)\b",
+    "physical-appearance": r"\b(beautiful|ugly|handsome|plain|attractive|unattractive|pretty|uglier|fatter|thin|overweight|skinny|appearance|looks?)\b",
+    "socioeconomic": r"\b(poor|rich|wealthy|wealthier|wealthiest|middle class|lower class|upper class|income|salary|earning|socioeconomic)\b",
+    "disability": r"\b(disabled|blind|deaf|dumb|crippled|handicapped|autistic|retarded|wheelchair|special needs|disability)\b",
 }
 
 # Cue words are no longer required for a match — they were causing near-total
