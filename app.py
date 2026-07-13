@@ -67,7 +67,7 @@ LLM_MITIGATOR_MODEL = "llama-3.3-70b-versatile"
 
 SUPPORTED_TEXT_EXTENSIONS = {".txt", ".md", ".csv", ".json", ".py", ".log", ".xml", ".html", ".htm", ".yaml", ".yml", ".ini"}
 
-BIAS_AXES = ["Gender", "Caste", "Religion", "Age", "Region", "Appearance", "Socioeconomic"]
+BIAS_AXES = ["Gender", "Caste", "Religion", "Age", "Disability", "Appearance", "Socioeconomic"]
 
 
 # ---------------- Design system ----------------
