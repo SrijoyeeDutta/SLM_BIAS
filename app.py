@@ -44,7 +44,7 @@ def log_test_case(input_text: str, output_text: str, detected_bias: bool, max_sc
 from detector import detect_bias
 from mitigation_pipeline import mitigate_pipeline
 
-st.set_page_config(page_title="Indian-context Bias Detector", page_icon="⚖️", layout="wide")
+st.set_page_config(page_title="BiasLens: Indian-context Bias Detector", page_icon="⚖️", layout="wide")
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")  # unused, kept in case you re-add HF later
 try:
@@ -175,7 +175,7 @@ def render_masthead():
     st.markdown(
         """
         <div class="masthead">
-            <h1>Indian-context Bias Detector &amp; Mitigator</h1>
+            <h1>BiasLens: Indian-context Bias Detector &amp; Mitigator</h1>
             <div class="dek mono">IndiBias corpus &middot; Groq-hosted SLM/LLM ensemble &middot;
             Gender &mdash; Caste &mdash; Religion &mdash; Age &mdash; Region &mdash; Appearance &mdash; Socioeconomic</div>
         </div>
