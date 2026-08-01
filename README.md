@@ -1,3 +1,6 @@
+**Live Demo : slmbias-cwrqffbwkqpker7muuyr3d.streamlit.app
+<img width="730" height="69" alt="image" src="https://github.com/user-attachments/assets/6ccb2ed3-e3b8-4510-9202-26b1424e8c8c" />
+**
 # Indian-context Bias Detector & Mitigator
 
 Detects and mitigates social bias (caste, gender, religion, age, appearance,
